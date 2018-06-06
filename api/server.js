@@ -1,12 +1,15 @@
 var express = require('express');
 var bodyParser = require('body-parser');
 var mongodb = require('mongodb');
+var multiparty = require('connect-multiparty');
+var fs = require('fs');
 var objectId = require('mongodb').ObjectID;
 
 var app = express();
 
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(bodyParser.json());
+app.use(multiparty());
 
 var port = 8080;
 
@@ -26,24 +29,45 @@ app.get('/', function(req, res){
 
 app.post('/api', function(req, res){
     
-    var dados = req.body;
+    res.setHeader("Access-Control-Allow-Origin", "*");
     
-    db.open(function(erro, mongoCliente){
-        mongoCliente.collection('postagem', function(erro, collection){
-            collection.insert(dados, function(erro, records){
-                if(erro){
-                    res.json(erro);
-                } else {
-                    res.json(records);
-                }
+    var data = new Date();
+    var time_stamp = data.getTime();
+    var url_imagem = time_stamp + '_' + req.files.arquivo.originalFilename;
+    var path_origem = req.files.arquivo.path;
+    var path_destino = './uploads/' + url_imagem;
 
-                mongoCliente.close();
+    fs.rename(path_origem, path_destino, function(erro){
+        if(erro){
+            res.status(500).json({erro: erro});
+            return;
+        } 
+        
+        var dados = {
+            url_imagem: url_imagem,
+            titulo: req.body.titulo
+        }
+
+        db.open(function(erro, mongoCliente){
+            mongoCliente.collection('postagem', function(erro, collection){
+                collection.insert(dados, function(erro, records){
+                    if(erro){
+                        res.json({status:'erro'});
+                    } else {
+                        res.json({status: 'Inclusão realizada com sucesso'});
+                    }
+    
+                    mongoCliente.close();
+                });
             });
         });
     });
 });
 
 app.get('/api', function(req, res){
+
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    
     db.open(function(erro, mongoCliente){
         mongoCliente.collection('postagem', function(erro, collection){
             collection.find().toArray(function(erro, results){
