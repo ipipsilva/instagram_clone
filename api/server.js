@@ -97,6 +97,24 @@ app.get('/api/:id', function(req, res){
     });
 });
 
+app.get('/imagens/:imagem', function(req, res){
+    
+    var img = req.params.imagem;
+
+    fs.readFile('./uploads/' + img, function(erro, content){
+        if(erro){
+            res.status(400).json(erro);
+            return;
+        }
+
+        res.writeHead(200, {
+            'content-type': 'image/jpg'
+        });
+
+        res.end(content);
+    });
+});
+
 app.put('/api/:id', function(req, res){
     db.open(function(erro, mongoCliente){
         mongoCliente.collection('postagem', function(erro, collection){
